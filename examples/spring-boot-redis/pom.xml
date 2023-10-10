@@ -18,5 +18,15 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>net.unit8.spring.idempotency</groupId>
+            <artifactId>spring-idempotency-filter</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>net.unit8.spring.idempotency</groupId>
+            <artifactId>spring-idempotency-storage-inmemory</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 </project>

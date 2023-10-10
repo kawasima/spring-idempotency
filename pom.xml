@@ -15,6 +15,7 @@
 		<module>spring-idempotency-filter</module>
 		<module>spring-idempotency-storage-redis</module>
         <module>spring-idempotency-core</module>
+        <module>spring-idempotency-storage-inmemory</module>
     </modules>
 	<dependencyManagement>
 		<dependencies>

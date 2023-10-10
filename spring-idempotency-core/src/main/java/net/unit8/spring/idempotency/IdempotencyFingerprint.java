@@ -18,4 +18,9 @@ public class IdempotencyFingerprint {
                 .orElse(false);
 
     }
+
+    @Override
+    public String toString() {
+        return value;
+    }
 }

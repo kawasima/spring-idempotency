@@ -1,27 +1,14 @@
-# Spring Idempotency
+package net.unit8.spring.idempotency.example.config;
 
-This library provides a mechanism to ensure idempotency for spring framework, based on `draft-ietf-httpapi-idempotency-key-header-03`.
+import net.unit8.spring.idempotency.IdempotencyKeyStore;
+import net.unit8.spring.idempotency.filter.IdempotencyFilter;
+import net.unit8.spring.idempotency.storage.inmemory.InMemoryIdempotencyStore;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-## Usage
+import java.time.Duration;
 
-### Maven
-
-```xml
-<dependency>
-    <groupId>net.unit8.spring.idempotency</groupId>
-    <artifactId>spring-idempotency-filter</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
-</dependency>
-```
-
-### Configuration
-
-The processing of the idempotency key is achieved through the ServletFilter, so it is registered in the Configuration.
-
-The minimal configuration for an idempotency key is as follows.
-The IdempotencyKeyStore can be selected from server in-memory or Redis.
-
-```java
 @Configuration
 public class IdempotencyConfig {
     @Bean
@@ -37,7 +24,6 @@ public class IdempotencyConfig {
         filter.setIdempotencyKeyStore(idempotencyKeyStore);
         return filter;
     }
-
     @Bean
     public FilterRegistrationBean<IdempotencyFilter> idempotencyFilterRegistration(IdempotencyFilter filter) {
         FilterRegistrationBean<IdempotencyFilter> registrationBean = new FilterRegistrationBean<>();
@@ -45,8 +31,3 @@ public class IdempotencyConfig {
         return registrationBean;
     }
 }
-```
-
-## License
-
-This library is released under the Apache License, Version 2.0.

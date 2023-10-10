@@ -1,26 +1,28 @@
 package net.unit8.spring.idempotency.storage.redis;
 
 import net.unit8.spring.idempotency.IdempotencyEntry;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.testcontainers.containers.GenericContainer;
 
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RedisInboundIdempotencyTest {
-    GenericContainer redis;
+    static GenericContainer<?> redis;
+
+    @SuppressWarnings("resource")
     @BeforeAll
-    void setup() {
+    static void setup() {
         redis = new GenericContainer<>("redis:7-alpine")
                 .withExposedPorts(6379);
         redis.start();
     }
 
     @AfterAll
-    void tearDown() {
+    static void tearDown() {
         redis.stop();
     }
 
@@ -35,8 +37,9 @@ class RedisInboundIdempotencyTest {
         redisTemplate.setConnectionFactory(connectionFactory);
         redisTemplate.afterPropertiesSet();
         RedisInboundIdempotency sut = new RedisInboundIdempotency(redisTemplate);
-        Optional<IdempotencyEntry> response = sut.apply("jj");
-        assertThat(response).isEmpty();
+        IdempotencyEntry response = sut.getAndSet("jj", null);
+        assertThat(response).isNull();
         connectionFactory.destroy();
     }
+
 }
