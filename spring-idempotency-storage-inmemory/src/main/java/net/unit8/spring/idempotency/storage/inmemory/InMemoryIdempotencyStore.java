@@ -17,12 +17,12 @@ public class InMemoryIdempotencyStore implements IdempotencyKeyStore, Initializi
     }
 
     @Override
-    public IdempotencyEntry getAndSet(String idempotencyKey, IdempotencyFingerprint fingerprint) {
+    public IdempotencyEntry getAndSet(String idempotencyKey) {
         String encodedEntry = map.get(idempotencyKey);
         if (encodedEntry != null) {
             return entryDeserializer.apply(idempotencyKey, encodedEntry);
         }
-        String entry = entrySerializer.apply(new IdempotencyEntry(idempotencyKey, fingerprint, null));
+        String entry = entrySerializer.apply(new IdempotencyEntry(idempotencyKey, null, null));
         map.put(idempotencyKey, entry);
         return null;
     }

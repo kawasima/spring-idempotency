@@ -37,7 +37,7 @@ class RedisInboundIdempotencyTest {
         redisTemplate.setConnectionFactory(connectionFactory);
         redisTemplate.afterPropertiesSet();
         RedisInboundIdempotency sut = new RedisInboundIdempotency(redisTemplate);
-        IdempotencyEntry response = sut.getAndSet("jj", null);
+        IdempotencyEntry response = sut.getAndSet("jj");
         assertThat(response).isNull();
         connectionFactory.destroy();
     }

@@ -18,8 +18,8 @@ public class RedisInboundIdempotency implements IdempotencyKeyStore {
     }
 
     @Override
-    public IdempotencyEntry getAndSet(String idempotencyKey, IdempotencyFingerprint fingerprint) {
-        IdempotencyEntry entry = new IdempotencyEntry(idempotencyKey, fingerprint, null);
+    public IdempotencyEntry getAndSet(String idempotencyKey) {
+        IdempotencyEntry entry = new IdempotencyEntry(idempotencyKey, null, null);
         if (redisTemplate.boundValueOps(idempotencyKey)
                 .setIfAbsent(entrySerializer.apply(entry))) {
             return null;

@@ -8,9 +8,13 @@ import net.unit8.spring.idempotency.*;
 import net.unit8.spring.idempotency.defaults.DefaultResponseValidator;
 import net.unit8.spring.idempotency.filter.fingerprint.DigestFingerprintStrategy;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
+import org.springframework.web.util.WebUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -43,17 +47,13 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             return;
         }
 
-        Optional<IdempotencyFingerprint> fingerprint = Optional.ofNullable(idempotencyFingerprintStrategy)
-                .map(strategy -> strategy.create(request));
-        IdempotencyEntry idempotencyEntry = idempotencyKeyStore.getAndSet(idempotencyKey, fingerprint.orElse(null));
+        ContentCachingRequestWrapper requestWrapper = new ContentCachingRequestWrapper(request);
+        IdempotencyEntry idempotencyEntry = idempotencyKeyStore.getAndSet(idempotencyKey);
         if (idempotencyEntry == null) {
-            processIdempotencyRequest(request, response, filterChain, idempotencyKey, fingerprint.orElse(null));
+            processIdempotencyRequest(requestWrapper, response, filterChain, idempotencyKey);
         } else {
-            if (fingerprint.filter(f -> !Objects.equals(f, idempotencyEntry.fingerprint())).isPresent()) {
-                response.sendError(422);
-                return;
-            }
-            processRetry(request, response, filterChain, idempotencyEntry);
+
+            processRetry(requestWrapper, response, filterChain, idempotencyEntry);
         }
 
     }
@@ -61,10 +61,11 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private void processIdempotencyRequest(HttpServletRequest request,
                                            HttpServletResponse response,
                                            FilterChain filterChain,
-                                           String idempotencyKey,
-                                           IdempotencyFingerprint fingerprint)
+                                           String idempotencyKey)
             throws IOException, ServletException {
         filterChain.doFilter(request, response);
+        Optional<IdempotencyFingerprint> fingerprint = Optional.ofNullable(idempotencyFingerprintStrategy)
+                .map(strategy -> strategy.create(request));
         ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(response);
         IdempotencyResponse idempotencyResponse = new IdempotencyResponse(wrapper.getStatus(),
                 wrapper.getHeaderNames().stream()
@@ -78,7 +79,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         if (responseValidator.validate(idempotencyResponse)) {
             idempotencyKeyStore.save(new IdempotencyEntry(
                     idempotencyKey,
-                    fingerprint,
+                    fingerprint.orElse(null),
                     idempotencyResponse
             ));
         } else {
@@ -89,10 +90,25 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                               HttpServletResponse response,
                               FilterChain filterChain,
                               IdempotencyEntry entry) throws IOException, ServletException {
-        idempotencyFingerprintStrategy.create(request);
         if (entry.response() == null) {
             response.sendError(409);
         } else {
+            Optional<IdempotencyFingerprint> fingerprint = Optional.ofNullable(idempotencyFingerprintStrategy)
+                    .map(strategy -> {
+                        ContentCachingRequestWrapper requestWrapper = WebUtils.getNativeRequest(request, ContentCachingRequestWrapper.class);
+                        if (requestWrapper != null) {
+                            try {
+                                consumeRequestStream(requestWrapper.getInputStream());
+                            } catch (IOException e) {
+                                throw new UncheckedIOException(e);
+                            }
+                        }
+                        return strategy.create(request);
+                    });
+            if (fingerprint.filter(f -> !Objects.equals(f, entry.fingerprint())).isPresent()) {
+                response.sendError(422);
+                return;
+            }
             response.setStatus(entry.response().status());
             Optional.ofNullable(entry.response().headers())
                     .ifPresent(headers -> headers.forEach((name, values) -> {
@@ -106,6 +122,16 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
     }
 
+    private void consumeRequestStream(InputStream is) throws IOException {
+        int len = 8192;
+        byte[] temp = new byte[len];
+        int c;
+        while ((c = is.read(temp, 0, len)) != -1) {
+            // do nothing except consume the stream
+            assert(c == len);
+        }
+    }
+
     public void setIdempotencyKeyStore(IdempotencyKeyStore idempotencyKeyStore) {
         this.idempotencyKeyStore = idempotencyKeyStore;
     }
@@ -116,6 +142,14 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
     public void setIdempotencyKeyHeaderName(String idempotencyKeyHeaderName) {
         this.idempotencyKeyHeaderName = idempotencyKeyHeaderName;
+    }
+
+    public void setHeaderWhitelist(Set<String> headerWhitelist) {
+        this.headerWhitelist = headerWhitelist;
+    }
+
+    public void setResponseValidator(ResponseValidator responseValidator) {
+        this.responseValidator = responseValidator;
     }
 
     @Override

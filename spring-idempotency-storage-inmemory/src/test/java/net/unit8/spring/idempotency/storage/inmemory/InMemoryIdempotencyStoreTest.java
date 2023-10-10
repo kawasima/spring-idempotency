@@ -10,9 +10,9 @@ class InMemoryIdempotencyStoreTest {
     void getAndSet() throws Exception {
         InMemoryIdempotencyStore sut = new InMemoryIdempotencyStore();
         sut.afterPropertiesSet();
-        IdempotencyEntry entry = sut.getAndSet("key", null);
+        IdempotencyEntry entry = sut.getAndSet("key");
         assertThat(entry).isNull();
-        entry = sut.getAndSet("key", null);
+        entry = sut.getAndSet("key");
         System.out.println(entry);
     }
 
@@ -22,7 +22,7 @@ class InMemoryIdempotencyStoreTest {
         sut.afterPropertiesSet();
 
         sut.save(new IdempotencyEntry("key", null, null));
-        IdempotencyEntry entry = sut.getAndSet("key", null);
+        IdempotencyEntry entry = sut.getAndSet("key");
         assertThat(entry).isNotNull()
                 .hasFieldOrPropertyWithValue("idempotencyKey", "key")
                 .hasFieldOrPropertyWithValue("fingerprint", null);
