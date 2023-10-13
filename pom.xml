@@ -16,6 +16,7 @@
 		<module>spring-idempotency-storage-redis</module>
         <module>spring-idempotency-core</module>
         <module>spring-idempotency-storage-inmemory</module>
+        <module>spring-idempotency-storage-infinispan</module>
     </modules>
 	<dependencyManagement>
 		<dependencies>
